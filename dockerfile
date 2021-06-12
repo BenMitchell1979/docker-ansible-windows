@@ -1,40 +1,23 @@
-#Forked Ned Bellavance
-FROM centos:7
+FROM ubuntu:18.04
 LABEL maintainer="BenTheBuilder"
-ENV container=docker
+LABEL version="1.0.1"
 
-# Install systemd -- See https://hub.docker.com/_/centos/
-RUN yum -y update; yum clean all; \
-(cd /lib/systemd/system/sysinit.target.wants/; for i in *; do [ $i == systemd-tmpfiles-setup.service ] || rm -f $i; done); \
-rm -f /lib/systemd/system/multi-user.target.wants/*;\
-rm -f /etc/systemd/system/*.wants/*;\
-rm -f /lib/systemd/system/local-fs.target.wants/*; \
-rm -f /lib/systemd/system/sockets.target.wants/*udev*; \
-rm -f /lib/systemd/system/sockets.target.wants/*initctl*; \
-rm -f /lib/systemd/system/basic.target.wants/*;\
-rm -f /lib/systemd/system/anaconda.target.wants/*;
+# Set ENV VAR for noninteractive 
+ENV DEBIAN_FRONTEND=noninteractive
+ 
+# Install required dependencies
+RUN apt-get update && \
+    apt-get install -y gcc python-dev libkrb5-dev && \
+    apt-get install -y software-properties-common && \
+    apt-get install -y python3.8 && \
+    apt-get install -y python3.8-dev python3.8-venv &&\
+    apt-get install -y python3-pip && \
+    pip3 install --upgrade pip && \
+    pip3 install --upgrade virtualenv
 
-# Install Ansible 
-RUN yum makecache fast \
- && yum -y install deltarpm epel-release initscripts \
- && yum -y update \
- && yum -y install \
-      python34 \
-      python34-pip \
-      ansible \
-      pywinrm \
-      sudo \
-      which \
-      unzip \
-      git \
- && yum clean all
-
-
-# Disable requiretty.
-RUN sed -i -e 's/^\(Defaults\s*requiretty\)/#--- \1/'  /etc/sudoers
-
-# Install Ansible inventory file.
-RUN echo -e '[local]\nlocalhost ansible_connection=local' > /etc/ansible/hosts
-
-VOLUME ["/sys/fs/cgroup"]
-CMD ["/usr/sbin/init"]
+# Install Ansible and dependencies
+RUN apt-get update && \
+  pip3 install pywinrm[kerberos] && \
+  apt install krb5-user -y && \ 
+  pip3 install pywinrm && \
+  pip3 install ansible
